@@ -13,13 +13,13 @@ Content-Type: application/json
 ###
 @eventId = {{ createEvent.response.body.id }}
 
-### listar todos os eventos
+### 
 GET http://localhost:3000/events
 
-### obter evento por id
+### 
 GET http://localhost:3000/events/{{eventId}}
 
-### atualizar evento por id
+### 
 PATCH  http://localhost:3000/events/{{eventId}}
 Content-Type: application/json
 
@@ -33,5 +33,32 @@ Content-Type: application/json
 ### atualizar evento por id
 DELETE   http://localhost:3000/events/{{eventId}}
 
+### SPOT
+# @name createSpot
+POST http://localhost:3000/events/{{eventId}}/spots
+Content-Type: application/json
+
+{
+  "name": "B2"
+}
+
 ###
+@spotId = {{ createSpot.response.body.id }}
+
+###
+GET http://localhost:3000/events/{{eventId}}/spots
+
+### 
+GET http://localhost:3000/events/{{eventId}}/spots/{{spotId}}
+
+### 
+PATCH  http://localhost:3000/events/{{eventId}}/spots/{{spotId}}
+Content-Type: application/json
+
+{
+  "name": "B1"
+}
+
+### 
+DELETE   http://localhost:3000/events/{{eventId}}/spots/{{spotId}}
 
