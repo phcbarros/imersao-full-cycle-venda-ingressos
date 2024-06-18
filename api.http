@@ -4,7 +4,7 @@ POST http://localhost:3000/events
 Content-Type: application/json
 
 {
-  "name": "Evento 1",
+  "name": "Evento 1000",
   "description": "This is a new event",
   "date": "2024-07-16T22:59:56.096Z",
   "price": 1000
@@ -39,7 +39,7 @@ POST http://localhost:3000/events/{{eventId}}/spots
 Content-Type: application/json
 
 {
-  "name": "B2"
+  "name": "B1"
 }
 
 ###
@@ -56,9 +56,21 @@ PATCH  http://localhost:3000/events/{{eventId}}/spots/{{spotId}}
 Content-Type: application/json
 
 {
-  "name": "B1"
+  "name": "B2"
 }
 
 ### 
-DELETE   http://localhost:3000/events/{{eventId}}/spots/{{spotId}}
+DELETE http://localhost:3000/events/{{eventId}}/spots/{{spotId}}
 
+
+###
+@spotName = {{createSpot.response.body.name}}
+
+POST http://localhost:3000/events/{{eventId}}/reserve
+Content-Type: application/json
+
+{
+  "spots": ["{{ spotName }}"],
+  "ticket_kind": "full",
+  "email": "test@test.com"
+}

@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma, SpotStatus, TicketStatus } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateEventDto } from './dto/create-event.dto';
+import { ReserveSpotDto } from './dto/reserve-spot.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 
 @Injectable()
@@ -36,5 +38,72 @@ export class EventsService {
 
   remove(id: string) {
     return this.prismaService.event.delete({ where: { id } });
+  }
+
+  async reserveSpot(reserveSpotDto: ReserveSpotDto & { eventId: string }) {
+    try {
+      const tickets = await this.prismaService.$transaction(
+        async (prisma) => {
+          const spots = await prisma.spot.findMany({
+            where: {
+              eventId: reserveSpotDto.eventId,
+              name: { in: reserveSpotDto.spots },
+            },
+          });
+
+          if (spots.length !== reserveSpotDto.spots.length) {
+            const foundSpotsName = spots.map((spot) => spot.name);
+            const notFoundSpotsName = reserveSpotDto.spots.filter(
+              (spotName) => !foundSpotsName.includes(spotName),
+            );
+
+            throw new Error(`Spots not found: ${notFoundSpotsName.join(', ')}`);
+          }
+
+          await prisma.reservationHistory.createMany({
+            data: spots.map((spot) => ({
+              spotId: spot.id,
+              ticketKind: reserveSpotDto.ticket_kind,
+              email: reserveSpotDto.email,
+              status: TicketStatus.reserved,
+            })),
+          });
+
+          await prisma.spot.updateMany({
+            where: { id: { in: spots.map((spot) => spot.id) } },
+            data: { status: SpotStatus.reserved },
+          });
+
+          const tickets = await Promise.all(
+            spots.map((spot) =>
+              prisma.ticket.create({
+                data: {
+                  spotId: spot.id,
+                  ticketKind: reserveSpotDto.ticket_kind,
+                  email: reserveSpotDto.email,
+                },
+              }),
+            ),
+          );
+
+          return tickets;
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+        },
+      );
+
+      return tickets;
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError) {
+        switch (e.code) {
+          case 'P2002': // unique constraint violation
+          case 'P2034': // transaction conflict
+            throw new Error('Some Spots are already reserved');
+        }
+      }
+
+      throw e;
+    }
   }
 }
